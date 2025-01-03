@@ -1,7 +1,11 @@
 module Range where
 
 -- A closed range of arbitrary type with both borders inclusive.
-data Range a = R a a deriving (Eq, Show)
+data Range a = R a a deriving (Eq, Show, Ord)
+
+-- Make a new Range. Ensures that a <= b.
+range :: Ord a => a -> a -> Range a
+range a b = R (minimum [a, b]) (maximum [a, b])
 
 -- Get low end of a Range
 low :: Range a -> a
@@ -89,3 +93,8 @@ disjunctJoin rs r
     new        = R a b
     a          = minimum . map low  $ (r : affected)
     b          = maximum . map high $ (r : affected)
+
+-- A fold using disjunctJoin, to turn a list of Ranges into a 
+-- list of disjunct Ranges
+disjunctify :: Ord a => [Range a] -> [Range a]
+disjunctify = foldl disjunctJoin []
