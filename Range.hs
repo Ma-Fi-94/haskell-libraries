@@ -15,6 +15,29 @@ high (R _ b) = b
 isin :: Ord a => a -> Range a -> Bool
 isin x (R a b) = x >= a && x <= b
 
+-- Remove one element from a Range. Returns either a new Range
+-- or a list of two new Ranges, or, no Range.
+remove :: (Ord a, Num a) => a -> Range a -> [Range a]
+remove x (R a b)
+    -- Make sure a <= b, otherwise we'd produce some strange stuff.
+    | b < a            = remove x (R b a)
+
+    -- x is outside of the range, so the range is not affected.
+    | x < a || x > b   = [R a b]
+    
+    -- The given range is a point
+    | a == b && x == a = []
+    | a == b && x /= a = [R a b]
+
+    -- The given range must be larger than a point, and x
+    -- is equal to one of its borders
+    | x == a           = [R (a + 1) b]
+    | x == b           = [R a (b - 1)]
+
+    -- The given range must be larger than a pount, and x
+    -- is within the range
+    | otherwise        = [R a (x - 1), R (x + 1) b]
+
 -- Check if the left range completely contains the right one. 
 contains :: Ord a => Range a -> Range a -> Bool
 R a b `contains` R c d = c >= a && d <= b
