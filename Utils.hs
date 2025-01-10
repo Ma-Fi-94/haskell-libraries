@@ -5,7 +5,9 @@ module Utils where
 -- of their own, deleted, re-introduced, expanded upon,
 -- reduced, or anything else.
 
+import Data.Char (isDigit)
 import Data.List (group, sort)
+import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe
@@ -19,9 +21,12 @@ readInt     = (read :: String -> Int)
 readInteger = (read :: String -> Integer)
 readDouble  = (read :: String -> Double)
 
-readDigits :: String -> [Int]
-readDigits = map (readInt . (:[]))
+readDigits     :: String -> [Int]
+readDigits      = map (readInt . (:[]))
 
+dropNondigits   = dropWhile (not . isDigit)
+takeDigits      = takeWhile isDigit
+takeDigitsMinus = takeWhile (\ c -> isDigit c || c == '-')
 
 ------------
 -- Tuples --
@@ -50,6 +55,36 @@ fou4 (_, _, _, d) = d
 -- Lists --
 -----------
 
+-- Fast counting function based on Maps, requires Ord
+ordCounts :: Ord a => [a] -> Map a Int
+ordCounts = Map.fromListWith (+) . map (,1)
+
+-- Return only those list elements that appear exactly once.
+-- Obviously requires Eq, but not Ord, and is stable.
+singletons :: Eq a => [a] -> [a]
+singletons []     = []
+singletons (x:xs)
+    | x `notElem` xs = x : singletons xs
+    | otherwise      = singletons $ filter (/=x) xs
+
+-- The same, but based on Data.Map. Significantly faster, but
+-- requiring Ord, and not stable.
+ordSingletons :: Ord a => [a] -> [a]
+ordSingletons = map fst . Map.toList . Map.filter (==1) . ordCounts
+
+
+-- Based on a list of Bools, keep elements of a given list or not.
+keepP :: [Bool] -> [a] -> [a]
+keepP bs = dropP (map not bs)
+
+-- Based on a list of Bools, drop elements of a given list or not.
+dropP :: [Bool] -> [a] -> [a]
+dropP [] [] = []
+dropP (b:bs) (x:xs)
+    | b         = dropP bs xs
+    | otherwise = x : dropP bs xs
+
+
 -- Apply a function to one single element of a list, specified by index
 mapAt :: Int -> (a -> a) -> [a] -> [a]
 mapAt i f xs = take i xs ++ [f (xs !! i)] ++ drop (i + 1) xs
@@ -67,13 +102,6 @@ setNub = Set.toList . Set.fromList
 countUnique :: Ord a => [a] -> Int
 countUnique = Set.size . Set.fromList
 
-
--- This should actually be present in the base lib, but isn't.
--- Total version of !!.
-(!?) :: [a] -> Int -> Maybe a
-[] !? _     = Nothing
-(x:_) !? 0  = Just x
-(_:xs) !? n = xs !? (n-1)
 
 -- Cartesian product of two lists
 cart :: [a] -> [b] -> [(a,b)]
